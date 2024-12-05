@@ -12,9 +12,6 @@ from whisperx.audio import load_audio
 
 MODEL_DIR = "/project/shrikann_35/nmehlman/vpc/models"
 
-DEV_DIR = "/project/shrikann_35/nmehlman/vpc/dev_test_orig/libri_dev/wav"
-TEST_DIR = "/project/shrikann_35/nmehlman/vpc/dev_test_orig/libri_test/wav"
-
 SPLITS = ("libri_dev_enrolls",  "libri_dev_trials_f",  "libri_dev_trials_m",  "libri_test_enrolls",  "libri_test_trials_f",  "libri_test_trials_m")
 
 ROOT = "/project/shrikann_35/nmehlman/vpc/dev_test_orig/"
@@ -108,7 +105,8 @@ if __name__ == "__main__":
                     audio_file=full_path,
                     device=device,
                 )
-            except:
+            except Exception as e:
+                breakpoint()
                 print("ERROR: failed to align file")
                 bad_files.append(full_path)
                 continue
