@@ -144,7 +144,6 @@ def collate_fn(
 def get_dataloaders(
     root_path: str,
     tokenizer: CharLevelTokenizer,
-    system: str,
     return_id: bool = False,
     train_frac: float = 1.0,
     batch_size: int = 16,
@@ -169,7 +168,7 @@ def get_dataloaders(
         Union[DataLoader, Dict[str, DataLoader]]: A dict with "train" and (possibly) "val" DataLoaders.
     """
     full_dataset = VPCDataset(
-        root_path=root_path, tokenizer=tokenizer, system=system, return_id=return_id
+        root_path=root_path, tokenizer=tokenizer, return_id=return_id
     )
 
     if train_frac < 1.0:  # Create a validation split
