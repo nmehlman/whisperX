@@ -9,7 +9,6 @@ VC_SYSTEMS = ("B3", "B4", "B5", "T10-2", "T12-5", "T25-1", "T8-5")
 VALID_SPLITS = (
     "libri_dev_enrolls",
     "libri_test_enrolls",
-    "train-clean-360",
     "libri_dev_trials_f",
     "libri_test_trials_f",
     "libri_dev_trials_m",
