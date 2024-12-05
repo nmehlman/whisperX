@@ -12,6 +12,14 @@ from whisperx.audio import load_audio
 
 MODEL_DIR = "/project/shrikann_35/nmehlman/vpc/models"
 
+DEV_DIR = "/project/shrikann_35/nmehlman/vpc/dev_test_orig/libri_dev/wav"
+TEST_DIR = "/project/shrikann_35/nmehlman/vpc/dev_test_orig/libri_test/wav"
+
+SPLITS = ("libri_dev_enrolls",  "libri_dev_trials_f",  "libri_dev_trials_m",  "libri_test_enrolls",  "libri_test_trials_f",  "libri_test_trials_m")
+
+ROOT = "/project/shrikann_35/nmehlman/vpc/dev_test_orig/"
+
+SAVE_DIR = "/project/shrikann_35/nmehlman/vpc/original_char_feats"
 
 def get_aligned_chars(
     whisper_model,
@@ -47,12 +55,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Feature extraction script with alignment."
     )
-    parser.add_argument(
-        "--root",
-        type=str,
-        default="/project/shrikann_35/nmehlman/vpc",
-        help="Root directory containing audio files. Default: '/project/shrikann_35/nmehlman/vpc'.",
-    )
+
     parser.add_argument(
         "--device",
         type=str,
@@ -67,7 +70,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    root = args.root
+    root = ROOT
     device = args.device
     compute_type = args.compute_type
 
@@ -79,56 +82,53 @@ if __name__ == "__main__":
 
     bad_files = []
 
-    for dirpath, dirnames, filenames in os.walk(root):
+    for split in SPLITS:
 
-        if "wav" in dirpath:
+        save_dir = os.path.join(SAVE_DIR, split)
+        os.mkdir(save_dir)
 
-            save_dir = dirpath.replace("wav", "char_feats")
+        # Get list of split files
+        split_wav_path = os.path.join(root, split, 'wav.scp')
+        split_paths = [line.split(' ')[1].replace('data/', root) for line in open(split_wav_path).readlines()]  
 
-            if not os.path.exists(save_dir):
-                os.mkdir(save_dir)
+        for full_path in tqdm.tqdm(
+            split_paths, desc=f"extracting features for {split}"
+        ):  # For each audio file
 
-            for file in tqdm.tqdm(
-                os.listdir(dirpath), desc=f"extracting features for {dirpath}"
-            ):  # For each audio file
+            save_name = full_path.split('/')[-1].replace(".wav", ".json")
 
-                full_path = os.path.join(dirpath, file)
-                save_path = os.path.join(save_dir, file.replace(".wav", ".json"))
+            save_path = os.path.join(save_dir, save_name)
 
-                # Skip previously generated files
-                if os.path.exists(save_path):
-                    continue
+            # Perform alignment and generate char sequence feature
+            try: 
+                aligned_chars = get_aligned_chars(
+                    whisper_model=whisper_model,
+                    alignment_model=alignment_model,
+                    alignmet_model_metadata=alignmet_model_metadata,
+                    audio_file=full_path,
+                    device=device,
+                )
+            except:
+                print("ERROR: failed to align file")
+                bad_files.append(full_path)
+                continue
 
-                # Perform alignment and generate char sequence feature
-                try: 
-                    aligned_chars = get_aligned_chars(
-                        whisper_model=whisper_model,
-                        alignment_model=alignment_model,
-                        alignmet_model_metadata=alignmet_model_metadata,
-                        audio_file=full_path,
-                        device=device,
-                    )
-                except:
-                    print("ERROR: failed to align file")
-                    bad_files.append(full_path)
-                    continue
+            # Handels error cases
+            if aligned_chars is None or aligned_chars == []:
+                print("ERROR: failed to align file")
+                bad_files.append(full_path)
+                continue
 
-                # Handels error cases
-                if aligned_chars is None or aligned_chars == []:
-                    print("ERROR: failed to align file")
-                    bad_files.append(full_path)
-                    continue
+            char_seq = generate_char_frame_sequence(aligned_chars)
 
-                char_seq = generate_char_frame_sequence(aligned_chars)
+            if char_seq is None:
+                print("ERROR: failed to generate char sequence")
+                bad_files.append(full_path)
+                continue
 
-                if char_seq is None:
-                    print("ERROR: failed to generate char sequence")
-                    bad_files.append(full_path)
-                    continue
-
-                # Save
-                with open(save_path, "w") as save_file:
-                    json.dump(char_seq, save_file)
+            # Save
+            with open(save_path, "w") as save_file:
+                json.dump(char_seq, save_file)
 
     print("BAD FILES:")
     for file in bad_files:

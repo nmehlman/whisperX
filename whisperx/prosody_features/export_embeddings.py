@@ -7,16 +7,17 @@ from whisperx.prosody_features.data import get_dataloaders
 from whisperx.prosody_features.tokenizer import CharLevelTokenizer
 import tqdm
 
-SYSTEMS = ("B3", "B4", "B5", "T10-2", "T12-5", "T25-1", "T8-5")
-SPLITS = (
-    "libri_dev_enrolls",
-    "libri_test_enrolls",
-    "libri_dev_trials_f",
-    "libri_test_trials_f",
-    "libri_dev_trials_m",
-    "libri_test_trials_m",
-)
+#SYSTEMS = ("B3", "B4", "B5", "T10-2", "T12-5", "T25-1", "T8-5")
+#SPLITS = (
+#    "libri_dev_enrolls",
+#    "libri_test_enrolls",
+#    "libri_dev_trials_f",
+#    "libri_test_trials_f",
+#    "libri_dev_trials_m",
+#    "libri_test_trials_m",
+#)
 
+SPLITS = ("libri_dev_enrolls",  "libri_dev_trials_f",  "libri_dev_trials_m",  "libri_test_enrolls",  "libri_test_trials_f",  "libri_test_trials_m")
 
 def extract_and_save_embeddings(
     model_checkpoint: str,
