@@ -51,7 +51,7 @@ def extract_and_save_embeddings(
     # Extract embeddings
     print("Extracting embeddings...")
     for audio, ids in tqdm.tqdm(dataloader, desc="Processing batches"):
-        continue
+        
         audio = audio.to(device)
         embeddings = model.get_features(audio).cpu()
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     
     import sys
 
-    device = "cpu"
+    device = "cuda"
 
     # Load configuration
     config_path = sys.argv[1]
