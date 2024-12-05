@@ -92,7 +92,7 @@ if __name__ == "__main__":
             split_paths, desc=f"extracting features for {split}"
         ):  # For each audio file
 
-            save_name = full_path.split('/')[-1].rstrip().replace(".wav", ".json")
+            save_name = full_path.split('/')[-1].replace(".wav\n", ".json")
 
             save_path = os.path.join(save_dir, save_name)
 
