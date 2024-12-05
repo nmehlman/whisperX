@@ -9,6 +9,7 @@ VC_SYSTEMS = ("B3", "B4", "B5", "T10-2", "T12-5", "T25-1", "T8-5")
 VALID_SPLITS = (
     "libri_dev_enrolls",
     "libri_test_enrolls",
+    "train-clean-360",
     "libri_dev_trials_f",
     "libri_test_trials_f",
     "libri_dev_trials_m",
@@ -143,6 +144,7 @@ def collate_fn(
 def get_dataloaders(
     root_path: str,
     tokenizer: CharLevelTokenizer,
+    split: str,
     return_id: bool = False,
     train_frac: float = 1.0,
     batch_size: int = 16,
@@ -167,7 +169,7 @@ def get_dataloaders(
         Union[DataLoader, Dict[str, DataLoader]]: A dict with "train" and (possibly) "val" DataLoaders.
     """
     full_dataset = VPCDataset(
-        root_path=root_path, tokenizer=tokenizer, return_id=return_id
+        root_path=root_path, tokenizer=tokenizer, return_id=return_id, split=split
     )
 
     if train_frac < 1.0:  # Create a validation split
