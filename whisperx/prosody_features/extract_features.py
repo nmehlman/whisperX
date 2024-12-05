@@ -86,13 +86,13 @@ if __name__ == "__main__":
 
         # Get list of split files
         split_wav_path = os.path.join(root, split, 'wav.scp')
-        split_paths = [line.split(' ')[1].replace('data/', root) for line in open(split_wav_path).readlines()]  
+        split_paths = [line.split(' ')[1].rstrip().replace('data/', root) for line in open(split_wav_path).readlines()]  
 
         for full_path in tqdm.tqdm(
             split_paths, desc=f"extracting features for {split}"
         ):  # For each audio file
 
-            save_name = full_path.split('/')[-1].replace(".wav\n", ".json")
+            save_name = full_path.split('/')[-1].replace(".wav", ".json")
 
             save_path = os.path.join(save_dir, save_name)
 
