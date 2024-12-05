@@ -5,11 +5,11 @@
 ---
 
 ckpt_path: "/home1/nmehlman/arts_vpc/logs/tensorboard/main_fit/version_0/checkpoints/epoch=11-step=54600.ckpt"
-output_dir: "/project/shrikann_35/nmehlman/vpc/embeds/"
+output_dir: "/project/shrikann_35/nmehlman/vpc/original_embeds/"
   
 # Dataset options:
 dataset:
-  root_path: "/project/shrikann_35/nmehlman/vpc"
+  root_path: "/project/shrikann_35/nmehlman/vpc/original_char_feats"
 
 # Dataloader options:
 dataloader:

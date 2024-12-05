@@ -36,12 +36,10 @@ class VPCDataset(Dataset):
         self,
         root_path: str,
         tokenizer: CharLevelTokenizer,
-        system: str = "all",
         split: str = "train-clean-360",
         return_id: bool = False
     ):
         self.root_path = root_path
-        self.system = system
         self.split = split
         self.tokenizer = tokenizer
         self.return_id = return_id
@@ -49,21 +47,9 @@ class VPCDataset(Dataset):
         # Validate the split
         assert split in VALID_SPLITS, f"Invalid split. Must be one of {VALID_SPLITS}"
 
-        # Handle system selection
-        if system == "all":  # Train on all VC systems
-            self.paths = []
-            self.speakers = []
-            for sys in VC_SYSTEMS:  # Process each system
-                paths, speakers = self._build_system_data_paths(system=sys)
-                self.paths += paths
-                self.speakers += speakers
-        else:  # Single VC system
-            self.paths, self.speakers = self._build_system_data_paths(system=system)
+        self.paths = self._build_system_data_paths()
 
-        # Renumber speakers to ensure they are sequential
-        self._renumber_speakers()
-
-    def _build_system_data_paths(self, system: str) -> Tuple[List[str], List[int]]:
+    def _build_system_data_paths(self) -> Tuple[List[str], List[int]]:
         """
         Build data paths and speaker labels for a specific system.
 
@@ -73,51 +59,16 @@ class VPCDataset(Dataset):
         Returns:
             Tuple[List[str], List[int]]: File paths and corresponding speaker labels.
         """
-        sys_data_dir = os.path.join(
-            self.root_path, system, "data", f"{self.split}_{system}"
+        data_dir = os.path.join(
+            self.root_path, self.split
         )
-        utt_to_speak_path = os.path.join(sys_data_dir, "utt2spk")
-        feats_dir = os.path.join(sys_data_dir, "char_feats")
 
-        # Map utterance IDs to speaker IDs
-        utt_to_speak = {
-            line.split()[0]: int(line.split()[1])
-            for line in open(utt_to_speak_path).readlines()
-        }
-
-        paths, speakers = [], []
-        for feat_file in os.listdir(feats_dir):  # For each feature file
-            full_file_path = os.path.join(feats_dir, feat_file)
-            utt_id = feat_file.replace(".json", "")
-            speaker = utt_to_speak[utt_id]
+        paths = []
+        for feat_file in os.listdir(data_dir):  # For each feature file
+            full_file_path = os.path.join(data_dir, feat_file)
             paths.append(full_file_path)
-            speakers.append(speaker)
 
-        return paths, speakers
-
-    def _renumber_speakers(self):
-        """
-        Renumber speakers to ensure IDs are sequential and compute the total number of unique speakers.
-        """
-        unique_speakers = sorted(list(set(self.speakers)))
-        speaker_id_map = {
-            old_id: i for i, old_id in enumerate(unique_speakers)
-        }  # Map old IDs to new ones
-
-        # Update speaker IDs to be sequential
-        self.speakers = [speaker_id_map[speaker] for speaker in self.speakers]
-        self.num_speakers = len(unique_speakers)  # Total number of unique speakers
-
-        print(f"Found {self.num_speakers} total speakers")
-
-    def total_speakers(self) -> int:
-        """
-        Get the total number of unique speakers.
-
-        Returns:
-            int: Total unique speakers in the dataset.
-        """
-        return self.num_speakers
+        return paths
 
     def __len__(self) -> int:
         """
@@ -138,7 +89,7 @@ class VPCDataset(Dataset):
         Returns:
             Tuple[torch.Tensor, int]: Tokenized character sequence and speaker ID.
         """
-        path, speaker = self.paths[index], self.speakers[index]
+        path = self.paths[index]
 
         id = path.split('/')[-1].replace('.json', '')
 
@@ -150,11 +101,8 @@ class VPCDataset(Dataset):
             print(f'WARNING: truncating token sequence (exceeds max length {MAX_SAMPLE_LENGTH})')
             tokens = tokens[:MAX_SAMPLE_LENGTH]
 
-        if self.return_id:
-            return tokens, id
-        else:
-            return tokens, speaker
-
+        return tokens, id
+    
 
 def collate_fn(
     batch: List[Tuple[torch.Tensor, int]]
@@ -197,7 +145,6 @@ def get_dataloaders(
     root_path: str,
     tokenizer: CharLevelTokenizer,
     system: str,
-    split: str,
     return_id: bool = False,
     train_frac: float = 1.0,
     batch_size: int = 16,
@@ -212,7 +159,6 @@ def get_dataloaders(
         root_path (str): Path to the dataset root.
         tokenizer (CharLevelTokenizer): Tokenizer for encoding character sequences.
         system (str): VC system to use or "all".
-        split (str): Dataset split to use.
         train_frac (float): Fraction of data for training. Defaults to 1.0.
         batch_size (int): Batch size for DataLoader. Defaults to 16.
         num_workers (int): Number of workers for DataLoader. Defaults to 1.
@@ -223,9 +169,8 @@ def get_dataloaders(
         Union[DataLoader, Dict[str, DataLoader]]: A dict with "train" and (possibly) "val" DataLoaders.
     """
     full_dataset = VPCDataset(
-        root_path=root_path, tokenizer=tokenizer, system=system, split=split, return_id=return_id
+        root_path=root_path, tokenizer=tokenizer, system=system, return_id=return_id
     )
-    total_speakers = full_dataset.total_speakers()
 
     if train_frac < 1.0:  # Create a validation split
         train_size = int(train_frac * len(full_dataset))
@@ -251,10 +196,6 @@ def get_dataloaders(
             **dataloader_kwargs,
         )
 
-        # Store number of speakers for easy access
-        train_dataloader.total_speakers = total_speakers
-        val_dataloader.total_speakers = total_speakers
-
         return {"train": train_dataloader, "val": val_dataloader}
     else:  # Train on the full dataset
         train_dataloader = DataLoader(
@@ -265,7 +206,6 @@ def get_dataloaders(
             collate_fn=collate_fn,
             **dataloader_kwargs,
         )
-        train_dataloader.total_speakers = total_speakers
         return {"train": train_dataloader}
 
 if __name__ == "__main__":

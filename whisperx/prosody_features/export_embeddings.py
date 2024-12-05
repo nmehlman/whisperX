@@ -38,7 +38,8 @@ def extract_and_save_embeddings(
         None: Saves the embeddings and labels to the output directory.
     """
     # Ensure the output directory exists
-    os.makedirs(output_dir)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     # Load the model
     print("Loading model...")
@@ -50,7 +51,7 @@ def extract_and_save_embeddings(
     # Extract embeddings
     print("Extracting embeddings...")
     for audio, ids in tqdm.tqdm(dataloader, desc="Processing batches"):
-        
+        continue
         audio = audio.to(device)
         embeddings = model.get_features(audio).cpu()
 
@@ -71,30 +72,25 @@ if __name__ == "__main__":
     print("Loading configuration...")
     config = load_yaml_config(config_path)
 
-    for system in SYSTEMS:
-        
-        print(f'--- {system} ---')
-        os.mkdir(os.path.join(config["output_dir"], system))
+    for split in SPLITS:
 
-        for split in SPLITS:
+        print(f'--- {split} ---')
 
-            print(f'--- {split} ---')
+        # Prepare output directory
+        split_output_dir = os.path.join(config["output_dir"], split)
 
-            # Prepare output directory
-            split_output_dir = os.path.join(config["output_dir"], system, split)
+        tokenizer = CharLevelTokenizer()
 
-            tokenizer = CharLevelTokenizer()
+        # Get dataloaders
+        dataloaders = get_dataloaders(
+            tokenizer=tokenizer, return_id=True, split=split, **config["dataset"], **config["dataloader"]
+        )
+        dataloader = dataloaders["train"]  # Assuming "train" contains the relevant data
 
-            # Get dataloaders
-            dataloaders = get_dataloaders(
-                tokenizer=tokenizer, return_id=True, system=system, split=split, **config["dataset"], **config["dataloader"]
-            )
-            dataloader = dataloaders["train"]  # Assuming "train" contains the relevant data
-
-            # Extract and save embeddings
-            extract_and_save_embeddings(
-                model_checkpoint=config["ckpt_path"],
-                dataloader=dataloader,
-                output_dir=split_output_dir,
-                device=device,
-            )
+        # Extract and save embeddings
+        extract_and_save_embeddings(
+            model_checkpoint=config["ckpt_path"],
+            dataloader=dataloader,
+            output_dir=split_output_dir,
+            device=device,
+        )
