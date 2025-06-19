@@ -4,6 +4,7 @@ from typing import List
 from whisperx.prosody_features.utils import generate_char_frame_sequence
 import json
 import tqdm
+import numpy as np
 import argparse
 from whisperx.transcribe import load_model
 from whisperx.alignment import load_align_model, align_for_prosody_features
@@ -14,6 +15,7 @@ def get_aligned_chars(
     alignment_model,
     alignmet_model_metadata,
     audio_file: str,
+    noise_level: float = 0.0,
     device: str = "cpu",
 ) -> List[dict]:
     """Perform transcription and alignment for a given audio file."""
@@ -21,6 +23,10 @@ def get_aligned_chars(
     batch_size = 4  # Adjust if running out of memory
 
     audio = load_audio(audio_file)
+
+    if noise_level > 0:
+        audio = audio / np.linalg.norm(audio) + noise_level * np.random.randn(*audio.shape)
+
     trans_result = whisper_model.transcribe(audio, batch_size=batch_size, language="en")
 
     try:
