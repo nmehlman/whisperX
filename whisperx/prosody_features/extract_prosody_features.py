@@ -17,6 +17,7 @@ def get_aligned_chars(
     device: str = "cpu",
 ) -> List[dict]:
     """Perform transcription and alignment for a given audio file."""
+    
     batch_size = 4  # Adjust if running out of memory
 
     audio = load_audio(audio_file)
@@ -40,20 +41,23 @@ def get_aligned_chars(
 
 def process_files(all_audio_files, args):
     """Main function executed for processing files."""
+    
     device = 'cuda' if torch.cuda.is_available() and args.device == 'cuda' else 'cpu'
     whisper_model = load_model("large-v2", device=device, compute_type=args.compute_type, language='en') 
     alignment_model, alignmet_model_metadata = load_align_model(language_code="en", device=device)
 
-    bad_files = []
-    bad_file_log = os.path.join(args.save_root, 'bad_files.json')
+    # Dictionary to track bad files per save directory
+    bad_files_dict = {}
 
     pbar = tqdm.tqdm(total=len(all_audio_files), desc="Processing Progress", position=0, leave=True)
 
     for audio_file_path, save_path in all_audio_files:
+
+        save_dir = os.path.dirname(save_path)
+        bad_file_log = os.path.join(save_dir, 'bad_files.json')
         
         if os.path.exists(save_path) and args.skip_existing:
             pass
-        
         else:
             aligned_chars = get_aligned_chars(
                 whisper_model=whisper_model,
@@ -65,18 +69,21 @@ def process_files(all_audio_files, args):
 
             if not aligned_chars:
                 print(f"ERROR: failed to align file {audio_file_path}")
-                bad_files.append(audio_file_path)
+                # Track bad files per save_dir
+                bad_files_dict.setdefault(save_dir, [])
+                bad_files_dict[save_dir].append(audio_file_path)
                 with open(bad_file_log, "w") as save_file:
-                    json.dump(bad_files, save_file)
+                    json.dump(bad_files_dict[save_dir], save_file)
                 continue
 
             char_seq = generate_char_frame_sequence(aligned_chars)
 
             if char_seq is None:
                 print(f"ERROR: failed to generate char sequence for {audio_file_path}")
-                bad_files.append(audio_file_path)
+                bad_files_dict.setdefault(save_dir, [])
+                bad_files_dict[save_dir].append(audio_file_path)
                 with open(bad_file_log, "w") as save_file:
-                    json.dump(bad_files, save_file)
+                    json.dump(bad_files_dict[save_dir], save_file)
                 continue
 
             with open(save_path, "w") as save_file:
