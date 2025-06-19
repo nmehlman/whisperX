@@ -91,28 +91,29 @@ if __name__ == "__main__":
    
     # Argument parser setup
     parser = argparse.ArgumentParser(description="Feature extraction script with alignment.")
-    parser.add_argument("--data-root", type=str, help="Root data directory.")
-    parser.add_argument("--save-root", type=str, help="Root directory for saving prosody features.")
+    parser.add_argument("--data-dirs", type=str, nargs='+', help="List of root data directories.")
+    parser.add_argument("--save-dirs", type=str, nargs='+', help="List of root directories for saving prosody features.")
     parser.add_argument("--device", type=str, default="cuda", help="Device to use for model inference.")
     parser.add_argument("--compute-type", type=str, default="float32", help="Compute format type.")
     parser.add_argument("--file-type", type=str, default="wav", help="Type of audio file.")
     parser.add_argument("--skip-existing", action="store_true", help="Skip processing of existing files.")
     args = parser.parse_args()
 
-    # Locate audio files
-    all_audio_files = []
-    for dirpath, _, filenames in os.walk(args.data_root):
-        rel_path = os.path.relpath(dirpath, args.data_root)
-        save_dir_path = os.path.join(args.save_root, rel_path)
-        os.makedirs(save_dir_path, exist_ok=True)
+    if len(args.data_dirs) != len(args.save_dirs):
+        raise ValueError("The number of data directories must match the number of save directories.")
 
-        for file in filenames:
-            if file.endswith(args.file_type):
-                audio_file_path = os.path.join(dirpath, file)
-                save_path = os.path.join(save_dir_path, file.replace(args.file_type, "json"))
-                all_audio_files.append((audio_file_path, save_path))
+    for data_root, save_root in zip(args.data_dirs, args.save_dirs):
+        all_audio_files = []
+        for dirpath, _, filenames in os.walk(data_root):
+            rel_path = os.path.relpath(dirpath, data_root)
+            save_dir_path = os.path.join(save_root, rel_path)
+            os.makedirs(save_dir_path, exist_ok=True)
 
-    print(f"Found {len(all_audio_files)} audio files for processing.")
+            for file in filenames:
+                if file.endswith(args.file_type):
+                    audio_file_path = os.path.join(dirpath, file)
+                    save_path = os.path.join(save_dir_path, file.replace(args.file_type, "json"))
+                    all_audio_files.append((audio_file_path, save_path))
 
-    # Process files
-    process_files(all_audio_files, args)
+        print(f"Found {len(all_audio_files)} audio files for processing in {data_root}.")
+        process_files(all_audio_files, args)
