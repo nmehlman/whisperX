@@ -48,7 +48,7 @@ for ((j=BATCH_INDEX*DIRS_PER_TASK; j<(BATCH_INDEX+1)*DIRS_PER_TASK && j<TOTAL_DI
 done
 
 # Run the Python script for this batch
-python /Users/nick/Desktop/ARTS/whisperX/whisperx/prosody_features/extract_prosody_features.py \
+python ../whisperx/prosody_features/extract_prosody_features.py \
     --data-dirs ${DATA_DIRS[@]} \
     --save-dirs ${SAVE_DIRS[@]} \
     --device cuda \
