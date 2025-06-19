@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Usage: ./launch_script.sh --data-root /path/to/data --save-root /path/to/save --compute-type float32 --file-type wav --skip-existing
+# Usage: ./run_export.sh --data-root /path/to/data --save-root /path/to/save --compute-type float32 --file-type wav --skip-existing
 
 export WORLD_SIZE=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l) # Count available GPUs
 

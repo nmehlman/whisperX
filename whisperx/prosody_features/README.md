@@ -11,7 +11,7 @@ run_export.sh --data-root /path/to/data --save-root /path/to/save --compute-type
 #### Arguments
 
 --data-root: Root data directory containing the audio files.  
---save-root: Root directory for saving the extracted prosody features. Directory structure will be  automatically be created to mirror the audio file directories.  
+--save-root: Root directory for saving the extracted prosody features. Directory structure will be automatically created to mirror the audio file directories.  
 --compute-type: Compute format type (default: float32).   
 --file-type: Type of audio file to process (default: wav).  
 --skip-existing: Skip processing of existing files in save directory.

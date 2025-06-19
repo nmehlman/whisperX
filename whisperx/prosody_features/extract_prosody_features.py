@@ -1,8 +1,5 @@
 import os
 import torch
-import torch.distributed as dist
-import torch.multiprocessing as mp
-from torch.nn.parallel import DistributedDataParallel as DDP
 from typing import List
 from whisperx.prosody_features.utils import generate_char_frame_sequence
 import json
@@ -11,19 +8,6 @@ import argparse
 from whisperx.transcribe import load_model
 from whisperx.alignment import load_align_model, align_for_prosody_features
 from whisperx.audio import load_audio
-
-def setup(rank, world_size):
-    """Initialize the distributed process group."""
-    os.environ["MASTER_ADDR"] = "127.0.0.1"  # Localhost for single-node
-    os.environ["MASTER_PORT"] = "12355"  
-    dist.init_process_group("nccl", rank=rank, world_size=world_size)
-    torch.cuda.set_device(rank)
-
-
-def cleanup():
-    """Destroy the distributed process group."""
-    dist.destroy_process_group()
-
 
 def get_aligned_chars(
     whisper_model,
@@ -54,28 +38,18 @@ def get_aligned_chars(
     return align_result["char_segments"]
 
 
-def process_files(rank, world_size, all_audio_files, args):
-    """Main function executed by each process."""
-    setup(rank, world_size)
-    
-    # Load models on assigned GPU
-    device = torch.device(f"cuda:{rank}")
-    whisper_model = load_model("large-v2", device='cuda', device_index=rank, compute_type=args.compute_type, language='en') 
+def process_files(all_audio_files, args):
+    """Main function executed for processing files."""
+    device = torch.device(args.device)
+    whisper_model = load_model("large-v2", device=device, compute_type=args.compute_type, language='en') 
     alignment_model, alignmet_model_metadata = load_align_model(language_code="en", device=device)
 
-    # Distribute files across GPUs
-    local_files = all_audio_files[rank::world_size]
-
     bad_files = []
-    bad_file_log = os.path.join(args.save_root, f'bad_files_{rank}.json')
+    bad_file_log = os.path.join(args.save_root, 'bad_files.json')
 
-    # Initialize tqdm on rank 0 (single shared progress bar)
-    if rank == 0:
-        pbar = tqdm.tqdm(total=len(all_audio_files), desc="Processing Progress (All GPUs)", position=0, leave=True)
+    pbar = tqdm.tqdm(total=len(all_audio_files), desc="Processing Progress", position=0, leave=True)
 
-    local_processed_count = 0  # Local counter for processed files
-
-    for audio_file_path, save_path in local_files:
+    for audio_file_path, save_path in all_audio_files:
         
         if os.path.exists(save_path) and args.skip_existing:
             pass
@@ -108,24 +82,13 @@ def process_files(rank, world_size, all_audio_files, args):
             with open(save_path, "w") as save_file:
                 json.dump(char_seq, save_file)
 
-        local_processed_count += 1  # Track local progress
+        pbar.update(1)
 
-        # Synchronize progress across GPUs
-        global_counts = [torch.tensor(0, device=device) for _ in range(world_size)]
-        dist.all_gather(global_counts, torch.tensor(local_processed_count, device=device)) 
-
-        if rank == 0:
-            total_processed = sum(t.item() for t in global_counts)  # Sum progress from all GPUs
-            pbar.n = total_processed  # Update tqdm
-            pbar.refresh()
-
-    if rank == 0:
-        pbar.close()
-
-    cleanup()
+    pbar.close()
 
 
 if __name__ == "__main__":
+   
     # Argument parser setup
     parser = argparse.ArgumentParser(description="Feature extraction script with alignment.")
     parser.add_argument("--data-root", type=str, help="Root data directory.")
@@ -149,11 +112,7 @@ if __name__ == "__main__":
                 save_path = os.path.join(save_dir_path, file.replace(args.file_type, "json"))
                 all_audio_files.append((audio_file_path, save_path))
 
-    # Get world size (number of GPUs available)
-    world_size = torch.cuda.device_count()
-    print(f"Found {world_size} GPUs for distributed processing.")
-    if world_size < 1:
-        raise RuntimeError("No GPUs found for distributed processing.")
-    
-    # Spawn multiple processes
-    mp.spawn(process_files, args=(world_size, all_audio_files, args), nprocs=world_size, join=True)
+    print(f"Found {len(all_audio_files)} audio files for processing.")
+
+    # Process files
+    process_files(all_audio_files, args)
