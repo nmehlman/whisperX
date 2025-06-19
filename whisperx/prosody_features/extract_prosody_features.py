@@ -40,7 +40,7 @@ def get_aligned_chars(
 
 def process_files(all_audio_files, args):
     """Main function executed for processing files."""
-    device = torch.device(args.device)
+    device = 'cuda' if torch.cuda.is_available() and args.device == 'cuda' else 'cpu'
     whisper_model = load_model("large-v2", device=device, compute_type=args.compute_type, language='en') 
     alignment_model, alignmet_model_metadata = load_align_model(language_code="en", device=device)
 
