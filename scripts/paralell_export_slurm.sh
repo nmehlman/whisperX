@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=prosody_array
 #SBATCH --output=/home1/nmehlman/arts/vpc/logs/slurm/output_%A_%a.log
-#SBATCH --time=0:10:00
+#SBATCH --time=5:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --mem=32G
@@ -17,8 +17,8 @@ eval "$(conda shell.bash hook)"
 conda activate whisperx
 
 # Define higher-level directory and save directory
-DATA_ROOT_MAIN="/project/shrikann_35/nmehlman/data/psid_data/LibriSpeech/train-other-500/audio"
-SAVE_ROOT_MAIN="/project/shrikann_35/nmehlman/data/psid_data/LibriSpeech/train-other-500/rhythm-feats"
+DATA_ROOT_MAIN="/project2/shrikann_35/nmehlman/data/psid_data/Vox1/wav"
+SAVE_ROOT_MAIN="/project2/shrikann_35/nmehlman/data/psid_data/Vox1/rhythm-feats"
 
 # Collect all subdirectories
 SUBDIRS=()
@@ -53,5 +53,5 @@ python ../whisperx/prosody_features/extract_prosody_features.py \
     --save-dirs ${SAVE_DIRS[@]} \
     --device cuda \
     --compute-type float32 \
-    --file-type flac \
+    --file-type wav \
     --skip-existing

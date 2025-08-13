@@ -422,9 +422,11 @@ class ProsodySpeakerIDModel(LightningModule):
     def _log_balanced_accuracy(self, prefix: str):
         """Compute and log final balanced accuracy"""
         
-        preds = torch.cat(self.preds, dim=0)
-        labels = torch.cat(self.labels, dim=0)
+        preds = torch.cat(self.preds, dim=0).to(self.device)
+        labels = torch.cat(self.labels, dim=0).to(self.device)
 
-        balanced_accuracy = self.metrics['balanced_accuracy'].cpu()
+        balanced_accuracy = self.metrics['balanced_accuracy'].to(self.device)
         ba_val = balanced_accuracy(preds, labels)
+
+        # Ensure ba_val is a scalar tensor on GPU
         self.log(f"{prefix}_balanced_accuracy", ba_val, sync_dist=True)

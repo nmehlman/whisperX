@@ -4,7 +4,7 @@ import json
 import argparse
 
 
-def create_split_json(data_dir, test_ratio=0.1):
+def create_split_json(data_dir, output_json, test_ratio=0.1):
     """
     Splits the dataset into train and test splits with equal speaker representation, and creates a JSON file. 
     JSON is saved to the data directory as splits.json.
@@ -15,7 +15,6 @@ def create_split_json(data_dir, test_ratio=0.1):
     """
     
     # Check if output file already exists
-    output_json = os.path.join(data_dir, "splits.json")
     if os.path.exists(output_json):
         print(
             f"Error: The file {output_json} already exists. Aborting to prevent overwriting."
@@ -34,7 +33,7 @@ def create_split_json(data_dir, test_ratio=0.1):
                 chapter_dir = os.path.join(speaker_dir, chapter_id)
                 if os.path.isdir(chapter_dir):
                     for file_name in os.listdir(chapter_dir):
-                        if file_name.endswith(".json"):
+                        if file_name.endswith(".json") and file_name != "bad_files.json":
                             feature_paths.append(os.path.join(chapter_dir, file_name))
             speaker_paths[speaker_id] = feature_paths
 
@@ -82,8 +81,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--test_ratio",
         type=float,
-        default=0.25,
-        help="Ratio of data for the test split (default: 0.5).",
+        default=0.1,
+        help="Ratio of data for the test split (default: 0.1).",
     )
 
     args = parser.parse_args()

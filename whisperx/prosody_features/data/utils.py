@@ -56,7 +56,7 @@ def collate_fn(
 
 
 def get_dataloaders(
-    root_path: str,
+    manifest_path: str,
     tokenizer: CharLevelTokenizer,
     split: str,
     sr_embed_model: str | None = None,
@@ -73,7 +73,7 @@ def get_dataloaders(
     Create DataLoaders for training and validation.
 
     Args:
-        root_path (str): Path to the dataset root.
+        manifest_path (str): Path to the dataset manifest JSON.
         tokenizer (CharLevelTokenizer): Tokenizer for encoding character sequences.
         split (str): Dataset split to use.
         sr_embed_model (str | None, optional): Name of the speaker recognition embedding model. Defaults to None.
@@ -93,7 +93,7 @@ def get_dataloaders(
     """
 
     full_dataset = ProsodyDataset(
-        root_path=root_path, tokenizer=tokenizer, split=split, max_sample_length=max_sample_length, sr_embed_model=sr_embed_model
+        manifest_path=manifest_path, tokenizer=tokenizer, split=split, max_sample_length=max_sample_length, sr_embed_model=sr_embed_model
     )
 
     total_speakers = full_dataset.total_speakers()

@@ -20,20 +20,19 @@ class ProsodyDataset(Dataset):
 
     def __init__(
         self,
-        root_path: str,
+        manifest_path: str,
         tokenizer: CharLevelTokenizer,
         split: str = "train",
         max_sample_length: int = 1024,
         sr_embed_model: str | None = None,
     ):
-        self.root_path = root_path
+
         self.split = split
         self.tokenizer = tokenizer
         self.max_sample_length = max_sample_length
         self.sr_embed_model = sr_embed_model
 
-        splits_path = os.path.join(root_path, "splits.json")
-        splits = json.load(open(splits_path))
+        splits = json.load(open(manifest_path))
         assert self.split in splits, f"Split {self.split} not found in splits.json"
 
         # Load data paths and speaker labels
@@ -100,7 +99,7 @@ class ProsodyDataset(Dataset):
         path = sample["path"]
         speaker_raw = sample["speaker"]
         speaker_id = self.speaker_id_map[speaker_raw]
-
+        
         # Load character sequence and tokenize
         char_seq = json.load(open(path))
         tokens = self.tokenizer.encode(char_seq)
